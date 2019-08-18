@@ -648,34 +648,24 @@ def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32
         
         if Adversarial_noise:
             print('Building Adversarial Noise .....') 
-            epoch = 1
-            train_acc1 = np.zeros(epoch)   
+            epoch = 1             
             for k in range(epoch): 
-                print(k+1 ,'/', epoch)
-                #acc_1 = 0
-                adv_acc1 = np.zeros(int(N/(batch_size)))
+                print(k+1 ,'/', epoch)                
                 train_adv_batches = 0
                 for minibatch_adv in iterate_minibatches(X_train, y_train, batch_size, shuffle=True):
                     update_progress(train_adv_batches/int(N/batch_size))    
                     inputs, targets = minibatch_adv 
                     y_true_batch = np.zeros_like(targets) 
                     y_true_batch[:, adversary_target_cls] = 1.0
-                    adv_acc2 = 0      
+                         
                     for i in range(batch_size):
                         xx_ = np.expand_dims(inputs[i,:,:,:],axis=0) 
                         yy_ = np.expand_dims(y_true_batch[i,:], axis=0) 
                         sess.run([optimizer_adversary],feed_dict={x: xx_,y: yy_ ,keep_prob1 : prob1, keep_prob2 : prob2, keep_prob3 : prob3}) 
-                        sess.run(x_noise_clip)     
-                        acc= sess.run(accuracy,feed_dict = {x: xx_, y: yy_,keep_prob1 : 1., keep_prob2 : 1., keep_prob3 : 1. })
-                        adv_acc2 += acc
-                    if (train_adv_batches % 20 == 0) or (train_adv_batches == (int(N/batch_size) - 1)):
-                        print(adv_acc2/batch_size)
+                        sess.run(x_noise_clip)                 
                     
-                    #print('Training Adversarial Accuracy: ', adv_acc2/batch_size)                      
-                    adv_acc1[train_adv_batches] = adv_acc2/batch_size 
-                    train_adv_batches += 1             
-                train_acc1[k] = np.amax(adv_acc1)                
-                print('Adversary Training Acc  ', train_acc1[k])
+                    train_adv_batches += 1       
+                
                 
         #if you have pre-trained data this else portion will be used
         save_path = saver.save(sess,'./EVI_CIFAR10_with_sigma_{}/epochs_{}/model'.format(init_std, epochs))     
@@ -796,9 +786,7 @@ def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32
         textfile.write("\n- Min : "+ str(noise.min())) 
         textfile.write("\n- Max : "+ str(noise.max())) 
         textfile.write("\n- Std : "+ str(noise.std()))
-        textfile.write("\n---------------------------------")
-        if Training:
-            textfile.write("\n Adversary Training Acc : "+ str(train_acc1))
+        textfile.write("\n---------------------------------")       
          
     textfile.write("\n---------------------------------")    
     textfile.write('\n Initial std of sigma of the weights : ' +str(init_sigma_std))    
