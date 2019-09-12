@@ -48,8 +48,15 @@ def UT_activation(mu_z, sigma_z, image_size, num_filters):
 
     n_g = image_size * image_size  
     sigma_z_diag = tf.matrix_diag_part(sigma_z )#shape=[num_filter[0], image_size*image_size]
-    L_gg = tf.sqrt(tf.clip_by_value(sigma_z_diag, 1e-15, 1e+15)   )
-    L_g = tf.matrix_diag(L_gg) 
+   # L_gg = tf.sqrt(tf.clip_by_value(sigma_z_diag, 1e-15, 1e+15)   )
+    
+    non_zero = tf.not_equal(sigma_z_diag, 0.)
+    l_gg_mask = tf.boolean_mask(sigma_z_diag, non_zero)
+    out_sqrt = tf.sqrt(l_gg_mask) #tf.reciprocal(tf.sqrt(l_gg_mask))
+    idx_l_gg = tf.to_int32(tf.where(non_zero))
+    L_gg = tf.scatter_nd(idx_l_gg, out_sqrt, tf.shape(non_zero))   
+    L_g = tf.matrix_diag(L_gg)    
+    
 
     L = np.sqrt(n_g)* L_g 
     x_hat1 = tf.transpose(tf.reshape(tf.squeeze(mu_z), [-1, num_filters]))#shape=[num_filter[0], image_size*image_size]
@@ -90,7 +97,14 @@ def UT_softmax(mu_f_fc1, sigma_f, num_labels):
 
     n_f = num_labels    
     sigma_f_diag = tf.diag_part(sigma_f)#shape=[ num_labels]  
-    L_ff = tf.diag(tf.sqrt( tf.clip_by_value(sigma_f_diag, 1e-15, 1e+15)   ))#shape=[num_labels,num_labels]
+    #L_ff = tf.diag(tf.sqrt( tf.clip_by_value(sigma_f_diag, 1e-15, 1e+15)   ))#shape=[num_labels,num_labels]
+    
+    non_zero_f = tf.not_equal(sigma_f_diag, 0.)
+    l_ff_mask = tf.boolean_mask(sigma_f_diag, non_zero_f)
+    out_sqrt_f = tf.sqrt(l_ff_mask) #tf.reciprocal(tf.sqrt(l_ff_mask))
+    idx_l_ff = tf.to_int32(tf.where(non_zero_f))
+    sigma_f_diag2 = tf.scatter_nd(idx_l_ff, out_sqrt_f, tf.shape(non_zero_f))
+    L_ff = tf.diag(sigma_f_diag2)#shape=[num_labels,num_labels] 
     
     L_f = np.sqrt(n_f)* L_ff       
     fx_hat = tf.tile(mu_f_fc1, [ num_labels, 1])#shape=[num_labels,num_labels]
@@ -265,7 +279,7 @@ def intermediate_convolution_approx(w_mean, w_s, mu_g, pre_sigma, patch_size , n
 
 
           
-    trace = tf.reshape(tf.reduce_sum(diag_sigma_patches,2), [-1])# shape=[ new_im_size* new_im_size]
+    trace = tf.reduce_sum(diag_sigma_g,0)# shape=[ new_im_size* new_im_size]
     #trace = tf.tile(trace, [1,num_filters1])#shape=[ new_im_size*new_im_size, num_filters1]
     trace = tf.ones([1, num_filters1]) * tf.expand_dims(trace, axis=-1)#shape=[ new_im_size*new_im_size, num_filters1]
     
@@ -279,7 +293,7 @@ def intermediate_convolution_approx(w_mean, w_s, mu_g, pre_sigma, patch_size , n
        
     mu_gT_mu_g1 = tf.ones([1,1, num_filters1]) * tf.expand_dims(mu_gT_mu_g, axis=-1)
     # shape=[new_im_size*new_im_size, new_im_size*new_im_size, num_filters1]    
-    sigmaw_mu_gT_mu_g = tf.transpose(tf.multiply( tf.log(1. + tf.exp(w_s)), mu_gT_mu_g1 ))
+    sigmaw_mu_gT_mu_g = tf.transpose(tf.multiply( tf.log(1. + tf.exp(w_s)), mu_gT_mu_g1 ), [2,0,1])
     # shape=[num_filters1, new_im_size*new_im_size, new_im_size*new_im_size]
     
 
