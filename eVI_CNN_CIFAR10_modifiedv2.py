@@ -521,7 +521,7 @@ def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32
     accuracy = tf.reduce_mean(tf.cast(corr,tf.float32))   
     if Adversarial_noise:         
         loss_adversary = log_likelihood + l2_loss_noise
-        optimizer_adversary = tf.train.AdamOptimizer(learning_rate= 1e-4 ).minimize(loss_adversary, var_list=adversary_variables)  
+        optimizer_adversary = tf.train.AdamOptimizer(learning_rate= 1e-5 ).minimize(loss_adversary, var_list=adversary_variables)  
     print('Initialize Variables ....')
     # initialize saver for saving weight and bias values
     saver = tf.train.Saver()
