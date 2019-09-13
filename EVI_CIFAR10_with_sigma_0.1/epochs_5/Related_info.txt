@@ -1,0 +1,25 @@
+ Number of kernels : [32, 32, 64, 64, 128, 128]
+
+---------------------------------
+ 
+Test Accuracy : 0.96
+ 
+Averaged Test Accuracy : 0.8786
+ 
+Averaged Training  Accuracy : 0.95474
+ 
+Averaged Validation Accuracy : 0.95356
+ 
+Total run Time in sec : 35183.49261332117
+
+---------------------------------
+--
+-------------------------------
+---- 
+Initial std of sigma of the weights : -2.3
+ 
+Initial log(1+exp(sigma)) : 0.1
+ 
+Rate of Convergence : 5 epochs
+ 
+Initial STD of the mean of the weights : 0.05
