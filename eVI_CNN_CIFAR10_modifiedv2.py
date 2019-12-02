@@ -137,15 +137,18 @@ def load_cifar10_data():
         Y_test[i,a] = 1    
     return X_tr, Y_train, X_cv, Y_valid, X_te, Y_test
 
-
-def get_batches(X, y, batch_size, crop=False, distort=True):
+def get_batches(X, y, batch_size, crop=False, distort=True, shuffle=True):
     # Shuffle X,y
-    shuffled_idx = np.arange(len(y))
-    np.random.shuffle(shuffled_idx)
+    if shuffle:
+        shuffled_idx = np.arange(len(y))
+        np.random.shuffle(shuffled_idx)
     i, h, w, c = X.shape    
     # Enumerate indexes by steps of batch_size
     for i in range(0, len(y)- batch_size + 1, batch_size):
-        batch_idx = shuffled_idx[i:i+batch_size]
+        if shuffle:
+            batch_idx = shuffled_idx[i : i + batch_size]
+        else:
+            batch_idx = slice(i, i + batch_size)
         X_return = X[batch_idx]        
         # optional random crop of images
         if crop:
@@ -159,6 +162,9 @@ def get_batches(X, y, batch_size, crop=False, distort=True):
         if coin and distort:
             X_return = X_return[...,::-1,:]        
         yield X_return, y[batch_idx]
+
+   
+        
 def Model_with_uncertainty_computation(x, y_label,w_mean, s, new_size,  new_size2, new_size3, keep_prob1, keep_prob2, keep_prob3,
             image_size=32, patch_size=3, num_channel=3, num_filters=[32,32,64,64,128,128],num_labels=10, epsilon_std= 1.0):
     
