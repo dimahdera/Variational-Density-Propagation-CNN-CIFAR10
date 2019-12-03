@@ -446,7 +446,7 @@ def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32
                       's5': tf.Variable(tf.truncated_normal([num_filter[4]],stddev = init_sigma_std)),    
                       's6': tf.Variable(tf.truncated_normal([num_filter[5]],stddev = init_sigma_std)),        
                       's7': tf.Variable(tf.truncated_normal([num_labels],stddev = init_sigma_std)),            
-                      's8': tf.Variable(tf.truncated_normal([num_labels],stddev = init_sigma_std))            
+                      's8': tf.Variable(tf.constant(0.0, shape=[num_labels]))           
                   }
     if Adversarial_noise:
         ADVERSARY_VARIABLES = 'adversary_variables'
