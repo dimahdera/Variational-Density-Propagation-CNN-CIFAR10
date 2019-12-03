@@ -377,9 +377,9 @@ def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10):
  #   return(ms)
 
 def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32, 64,64,128,128],num_labels=10,
-        batch_size=100, noise_limit=0.01, noise_l2_weight=0.01, adversary_target_cls=3, init_sigma_std=-2.3,
+        batch_size=100, noise_limit=0.01, noise_l2_weight=0.01, adversary_target_cls=3, init_sigma_std=-4.6,
         weight_std=0.05, epochs=100, Adversarial_noise=False, Random_noise=False, gaussain_noise_var=0.01, Training=True, continue_train=False):     
-    init_std = 0.1
+    init_std = 0.01
     x = tf.placeholder(tf.float32, shape = (1, image_size,image_size,num_channel), name='x')
     y = tf.placeholder(tf.float32, shape = (1,num_labels), name='y_true')        
     y_true_cls = tf.argmax(y, axis=1) 
@@ -430,23 +430,23 @@ def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32
                        'm8': tf.Variable(tf.constant(0.0, shape=[num_labels]))        
                    }   
         sigmas = {
-                 #     's1': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[0]])),       
-                  #    's2': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[1]])),      
-                  #    's3': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[2]])),    
-                  #    's4': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[3]])),    
-                   #   's5': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[4]])),    
-                  #    's6': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[5]])),        
-                   #   's7': tf.Variable(tf.constant(init_sigma_std, shape=[num_labels])),
-                  #    's8': tf.Variable(tf.constant(0.0, shape=[num_labels])) 
+                      's1': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[0]])),       
+                      's2': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[1]])),      
+                      's3': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[2]])),    
+                      's4': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[3]])),    
+                      's5': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[4]])),    
+                      's6': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[5]])),        
+                      's7': tf.Variable(tf.constant(init_sigma_std, shape=[num_labels])),
+                      's8': tf.Variable(tf.constant(0.0, shape=[num_labels])) 
             
-                      's1': tf.Variable(tf.truncated_normal([num_filter[0]],stddev = init_sigma_std)),                   
-                      's2': tf.Variable(tf.truncated_normal([num_filter[1]],stddev = init_sigma_std)),      
-                      's3': tf.Variable(tf.truncated_normal([num_filter[2]],stddev = init_sigma_std)),    
-                      's4': tf.Variable(tf.truncated_normal([num_filter[3]],stddev = init_sigma_std)),    
-                      's5': tf.Variable(tf.truncated_normal([num_filter[4]],stddev = init_sigma_std)),    
-                      's6': tf.Variable(tf.truncated_normal([num_filter[5]],stddev = init_sigma_std)),        
-                      's7': tf.Variable(tf.truncated_normal([num_labels],stddev = init_sigma_std)),            
-                      's8': tf.Variable(tf.constant(0.0, shape=[num_labels]))           
+                    #  's1': tf.Variable(tf.truncated_normal([num_filter[0]],stddev = init_sigma_std)),                   
+                    #  's2': tf.Variable(tf.truncated_normal([num_filter[1]],stddev = init_sigma_std)),      
+                    #  's3': tf.Variable(tf.truncated_normal([num_filter[2]],stddev = init_sigma_std)),    
+                    #  's4': tf.Variable(tf.truncated_normal([num_filter[3]],stddev = init_sigma_std)),    
+                    #  's5': tf.Variable(tf.truncated_normal([num_filter[4]],stddev = init_sigma_std)),    
+                    #  's6': tf.Variable(tf.truncated_normal([num_filter[5]],stddev = init_sigma_std)),        
+                    #  's7': tf.Variable(tf.truncated_normal([num_labels],stddev = init_sigma_std)),            
+                    #  's8': tf.Variable(tf.constant(0.0, shape=[num_labels]))           
                   }
     if Adversarial_noise:
         ADVERSARY_VARIABLES = 'adversary_variables'
