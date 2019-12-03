@@ -355,26 +355,26 @@ def kl_divergence_fc(new_size, num_filters, fc_weight_mu, fc_weight_sigma ):
    #- tf.nn.l2_loss(fc_weight_mu) - new_size*new_size* num_filters*f_s)#, axis=-1)  
     return kl_loss_fc
     
-#def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10): 
-#    NS = tf.diag(tf.constant(1e-3, shape=[num_labels]))
-#    y_pred_sd_inv = tf.matrix_inverse(y_pred_sd + NS)   
-#    mu_ = y_pred_mean - y_test
-#    mu_sigma = tf.matmul(mu_ ,  y_pred_sd_inv) 
-#    ms = 0.5*tf.matmul(mu_sigma , tf.transpose(mu_)) + 0.5*tf.log(tf.matrix_determinant(y_pred_sd + NS ))      
-#    ms = tf.reduce_mean(ms)
-#    return(ms)
-
-
-def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10):
+def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10): 
     NS = tf.diag(tf.constant(1e-3, shape=[num_labels]))
-    I = tf.eye(num_labels)
-    y_pred_sd_ns = y_pred_sd + NS
-    y_pred_sd_inv = tf.matrix_solve(y_pred_sd_ns, I)
+    y_pred_sd_inv = tf.matrix_inverse(y_pred_sd + NS)   
     mu_ = y_pred_mean - y_test
     mu_sigma = tf.matmul(mu_ ,  y_pred_sd_inv) 
-    ms = 0.5*tf.matmul(mu_sigma , mu_, transpose_b=True) + 0.5*tf.linalg.slogdet(y_pred_sd_ns)[1]
+    ms = 0.5*tf.matmul(mu_sigma , tf.transpose(mu_)) + 0.5*tf.log(tf.matrix_determinant(y_pred_sd + NS ))      
     ms = tf.reduce_mean(ms)
     return(ms)
+
+
+#def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10):
+#    NS = tf.diag(tf.constant(1e-3, shape=[num_labels]))
+#    I = tf.eye(num_labels)
+#    y_pred_sd_ns = y_pred_sd + NS
+#    y_pred_sd_inv = tf.matrix_solve(y_pred_sd_ns, I)
+#    mu_ = y_pred_mean - y_test
+#    mu_sigma = tf.matmul(mu_ ,  y_pred_sd_inv) 
+#    ms = 0.5*tf.matmul(mu_sigma , mu_, transpose_b=True) + 0.5*tf.linalg.slogdet(y_pred_sd_ns)[1]
+#    ms = tf.reduce_mean(ms)
+ #   return(ms)
 
 def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32, 64,64,128,128],num_labels=10,
         batch_size=100, noise_limit=0.01, noise_l2_weight=0.01, adversary_target_cls=3, init_sigma_std=-2.3,
