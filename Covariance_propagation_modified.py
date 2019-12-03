@@ -28,13 +28,14 @@ from scipy.misc import toimage
 
 
 
-
 def activation(mu_g , mu_z, sigma_z, num_filters):
     
     activation_gradiant = tf.gradients(mu_g, mu_z)[0] # shape =[1, image_size,image_size,num_filters]
-    gradient_matrix = tf.reshape(activation_gradiant,[1, -1, num_filters])# shape =[1, image_size*image_size, num_filters]    
-    gradient_matrix=tf.expand_dims(gradient_matrix, 3)
-    grad1 = tf.transpose(gradient_matrix, [0,2,1,3])
+    gradient_matrix = tf.reshape(activation_gradiant,[1, -1, num_filters])# shape =[1, image_size*image_size, num_filters]   
+    
+    grad1=tf.expand_dims(tf.transpose(gradient_matrix, [0, 2, 1]), 3) 
+    #gradient_matrix=tf.expand_dims(gradient_matrix, 3)
+    #grad1 = tf.transpose(gradient_matrix, [0,2,1,3])
     grad_square = tf.squeeze(tf.matmul(grad1, grad1, transpose_b=True))# shape =[num_filters, image_size*image_size, image_size*image_size]
 
     #grad2 = tf.transpose(grad1,[0,1,3,2])
