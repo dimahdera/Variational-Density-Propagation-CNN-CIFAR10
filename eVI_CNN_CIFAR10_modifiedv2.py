@@ -163,8 +163,6 @@ def get_batches(X, y, batch_size, crop=False, distort=True, shuffle=True):
             X_return = X_return[...,::-1,:]        
         yield X_return, y[batch_idx]
 
-   
-        
 def Model_with_uncertainty_computation(x, y_label,w_mean, s, new_size,  new_size2, new_size3, keep_prob1, keep_prob2, keep_prob3,
             image_size=32, patch_size=3, num_channel=3, num_filters=[32,32,64,64,128,128],num_labels=10, epsilon_std= 1.0):
     
@@ -175,13 +173,7 @@ def Model_with_uncertainty_computation(x, y_label,w_mean, s, new_size,  new_size
     ######################################################   
     # propagation through the activation function  
     z = conv2d(x, W_conv1)#shape=[1, image_size,image_size,num_filters[0]]
-    
-    mean1, variance1 = tf.nn.moments(mu_z, [0, 1, 2])   
-    mu_z_bn = tf.nn.batch_normalization(mu_z, mean1, variance1, None, None, 1e-3)
-    mu_g = tf.nn.elu(mu_z_bn)#shape=[1, image_size,image_size,num_filters[0]]
-
-    mean11, variance11 = tf.nn.moments(z, [0, 1, 2])   
-    z = tf.nn.batch_normalization(z, mean11, variance11, None, None, 1e-3)
+    mu_g = tf.nn.elu(mu_z)#shape=[1, image_size,image_size,num_filters[0]]
     g = tf.nn.elu(z)#shape=[1, image_size,image_size,num_filters[0]]
     sigma_g = activation(mu_g , mu_z, sigma_z, num_filters[0])
     
@@ -196,20 +188,14 @@ def Model_with_uncertainty_computation(x, y_label,w_mean, s, new_size,  new_size
     new_im_size = image_size - patch_size + 1
     sigma_z2 = intermediate_convolution_approx(w_mean['m2'],s['s2'],mu_g,sigma_g,patch_size,num_filters[0],num_filters[1], image_size, new_im_size, pad="VALID")
     image_size = image_size - patch_size + 1
-    ######################################################         
-    mean2, variance2 = tf.nn.moments(mu_z2, [0, 1, 2])
-    mu_z2_bn = tf.nn.batch_normalization(mu_z2, mean2, variance2, None, None, 1e-3)
-    mu_g2 = tf.nn.elu(mu_z2_bn)#shape=[1, image_size,image_size,num_filters[1]]
-
-    mean22, variance22 = tf.nn.moments(z2, [0, 1, 2])
-    z2 = tf.nn.batch_normalization(z2, mean22, variance22, None, None, 1e-3)
-    g2 = tf.nn.elu(z2)#shape=[1, image_size,image_size,num_filters[1]]   
-   
+    ######################################################    
+    mu_g2 = tf.nn.elu(mu_z2)#shape=[1, image_size,image_size,num_filters[1]]
+    g2 = tf.nn.elu(z2)#shape=[1, image_size,image_size,num_filters[1]]      
     sigma_g2 = activation(mu_g2 , mu_z2, sigma_z2, num_filters[1]) 
     ######################################################
     # propagation through the pooling layer    
-    mu_p = max_pool_2x2(mu_g2)  #shape=[1, new_size,new_size,num_filters[0]]
-    p, argmax_p = tf.nn.max_pool_with_argmax(g2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME') #shape=[1, new_size,new_size,num_filters[1]]
+    p = max_pool_2x2(g2)  #shape=[1, new_size,new_size,num_filters[0]]
+    mu_p, argmax_p = tf.nn.max_pool_with_argmax(mu_g2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME') #shape=[1, new_size,new_size,num_filters[1]]
     sigma_p = max_pooling(sigma_g2, argmax_p, num_filters[1], new_size, image_size )
 
     p = tf.nn.dropout(p, keep_prob1) 
@@ -223,12 +209,7 @@ def Model_with_uncertainty_computation(x, y_label,w_mean, s, new_size,  new_size
     sigma_z3 = intermediate_convolution_approx(w_mean['m3'],s['s3'],mu_p,sigma_p,patch_size,num_filters[1],num_filters[2], new_size, new_im_size, pad="VALID")
     new_size = new_size - patch_size + 1    
     ######################################################  
-    mean3, variance3 = tf.nn.moments(mu_z3, [0, 1, 2])
-    mu_z3_bn = tf.nn.batch_normalization(mu_z3, mean3, variance3, None, None, 1e-3)
-    mu_g3 = tf.nn.elu(mu_z3_bn)#shape=[1, new_size,new_size,num_filters[2]]
-
-    mean33, variance33 = tf.nn.moments(z3, [0, 1, 2])
-    z3 = tf.nn.batch_normalization(z3, mean33, variance33, None, None, 1e-3)
+    mu_g3 = tf.nn.elu(mu_z3)#shape=[1, new_size,new_size,num_filters[2]]
     g3 = tf.nn.elu(z3)#shape=[1, new_size,new_size,num_filters[2]]     
     sigma_g3 = activation(mu_g3 , mu_z3, sigma_z3, num_filters[2])
 
@@ -241,19 +222,13 @@ def Model_with_uncertainty_computation(x, y_label,w_mean, s, new_size,  new_size
     mu_z4 = conv2d_w_pad(mu_g3, w_mean['m4'])# shape=[1, new_size,new_size,num_filters[3]]    
     sigma_z4 = intermediate_convolution_approx(w_mean['m4'],s['s4'],mu_g3,sigma_g3,patch_size,num_filters[2],num_filters[3], new_size, new_size, pad="SAME")
 
-    ######################################################     
-    mean4, variance4 = tf.nn.moments(mu_z4, [0, 1, 2])
-    mu_z4_bn = tf.nn.batch_normalization(mu_z4, mean4, variance4, None, None, 1e-3)
-    mu_g4 = tf.nn.elu(mu_z4_bn)#shape=[1, new_size,new_size,num_filters[3]]
-
-    mean44, variance44 = tf.nn.moments(z4, [0, 1, 2])
-    z4 = tf.nn.batch_normalization(z4, mean44, variance44, None, None, 1e-3)
-    g4 = tf.nn.elu(z4)#shape=[1, new_size,new_size,num_filters[3]]    
-    
+    ###################################################### 
+    mu_g4 = tf.nn.elu(mu_z4)#shape=[1, new_size,new_size,num_filters[3]]
+    g4 = tf.nn.elu(z4)#shape=[1, new_size,new_size,num_filters[3]]        
     sigma_g4 = activation(mu_g4 , mu_z4, sigma_z4, num_filters[3])
     ######################################################
-    mu_p2 = max_pool_2x2(mu_g4)  #shape=[1, new_size2,new_size2,num_filters[3]]
-    p2, argmax_p2 = tf.nn.max_pool_with_argmax(g4, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME') #shape=[1, new_size2,new_size2,num_filters[3]]
+    p2 = max_pool_2x2(g4)  #shape=[1, new_size2,new_size2,num_filters[3]]
+    mu_p2, argmax_p2 = tf.nn.max_pool_with_argmax(mu_g4, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME') #shape=[1, new_size2,new_size2,num_filters[3]]
     sigma_p2 = max_pooling(sigma_g4, argmax_p2, num_filters[3], new_size2, new_size )          
   
     ###################################################### 
@@ -265,19 +240,12 @@ def Model_with_uncertainty_computation(x, y_label,w_mean, s, new_size,  new_size
     mu_z5 = conv2d_w_pad(mu_p2, w_mean['m5'])# shape=[1, new_size2,new_size2,num_filters[4]]        
     sigma_z5 = intermediate_convolution_approx(w_mean['m5'],s['s5'],mu_p2,sigma_p2,patch_size,num_filters[3],num_filters[4], new_size2, new_size2, pad="SAME")
 
-    ######################################################    
-    mean5, variance5 = tf.nn.moments(mu_z5, [0, 1, 2])
-    mu_z5_bn = tf.nn.batch_normalization(mu_z5, mean5, variance5, None, None, 1e-3)
-    mu_g5 = tf.nn.elu(mu_z5_bn)#shape=[1, new_size2,new_size2,num_filters[4]]
-
-    mean55, variance55 = tf.nn.moments(z5, [0, 1, 2])
-    z5 = tf.nn.batch_normalization(z5, mean55, variance55, None, None, 1e-3)
+    ######################################################
+    mu_g5 = tf.nn.elu(mu_z5)#shape=[1, new_size2,new_size2,num_filters[4]]
     g5 = tf.nn.elu(z5)#shape=[1, new_size2,new_size2,num_filters[4]]       
     sigma_g5 = activation(mu_g5 , mu_z5, sigma_z5, num_filters[4])
-
     g5 = tf.nn.dropout(g5, keep_prob1) 
-    mu_g5 = tf.nn.dropout(mu_g5, keep_prob1)
-  
+    mu_g5 = tf.nn.dropout(mu_g5, keep_prob1)  
     ###################################################### 
     conv6_weight_epsilon = tf.random_normal([patch_size, patch_size,num_filters[4],num_filters[5]], mean=0.0, stddev=epsilon_std, dtype=tf.float32, seed=None, name=None)   
     W_conv6 = w_mean['m6'] + tf.multiply(tf.log(1. + tf.exp(s['s6'])), conv6_weight_epsilon)
@@ -285,25 +253,16 @@ def Model_with_uncertainty_computation(x, y_label,w_mean, s, new_size,  new_size
     mu_z6 = conv2d_w_pad(mu_g5, w_mean['m6'])# shape=[1, new_size2,new_size2,num_filters[5]]    
     sigma_z6 = intermediate_convolution_approx(w_mean['m6'],s['s6'],mu_g5,sigma_g5,patch_size,num_filters[4],num_filters[5], new_size2, new_size2, pad="SAME")
 
-    ######################################################    
-    mean6, variance6 = tf.nn.moments(mu_z6, [0, 1, 2])
-    mu_z6_bn = tf.nn.batch_normalization(mu_z6, mean6, variance6, None, None, 1e-3)
-    mu_g6 = tf.nn.elu(mu_z6_bn)#shape=[1, new_size2,new_size2,num_filters[5]]
-
-    mean66, variance66 = tf.nn.moments(z6, [0, 1, 2])
-    z6 = tf.nn.batch_normalization(z6, mean66, variance66, None, None, 1e-3)
-    g6 = tf.nn.elu(z6)#shape=[1, new_size2,new_size2,num_filters[5]]  
-    
+    ######################################################   
+    mu_g6 = tf.nn.elu(mu_z6)#shape=[1, new_size2,new_size2,num_filters[5]]
+    g6 = tf.nn.elu(z6)#shape=[1, new_size2,new_size2,num_filters[5]]      
     sigma_g6 = activation(mu_g6 , mu_z6, sigma_z6, num_filters[5]) 
     ######################################################
-    mu_p3 = max_pool_2x2(mu_g6)  #shape=[1, new_size3,new_size3,num_filters[5]]
-    p3, argmax_p3 = tf.nn.max_pool_with_argmax(g6, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME') #shape=[1, new_size3,new_size3,num_filters[5]]
-    sigma_p3 = max_pooling(sigma_g6, argmax_p3, num_filters[5], new_size3, new_size2 )        
-  
+    p3 = max_pool_2x2(g6)  #shape=[1, new_size3,new_size3,num_filters[5]]
+    mu_p3, argmax_p3 = tf.nn.max_pool_with_argmax(mu_g6, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME') #shape=[1, new_size3,new_size3,num_filters[5]]
+    sigma_p3 = max_pooling(sigma_g6, argmax_p3, num_filters[5], new_size3, new_size2 )   
     ######################################################
-    # # propagation through the Fully Connected
-    #p3 = tf.nn.dropout(p3, keep_prob3)
-    #mu_p3 = tf.nn.dropout(mu_p3, keep_prob3)
+    # # propagation through the Fully Connected   
     b = tf.reshape(p3, [-1, new_size3*new_size3*num_filters[5]]) #shape=[1, new_size3*new_size3*num_filters[5]]
     mu_b = tf.reshape(mu_p3, [-1, new_size3*new_size3*num_filters[5]]) #shape=[1, new_size3*new_size3*num_filters[5]] 
     mu_b = tf.nn.dropout(mu_b, keep_prob3)      
@@ -336,7 +295,9 @@ def Model_with_uncertainty_computation(x, y_label,w_mean, s, new_size,  new_size
     target_conv_layer2 = p3   
     target_conv_layer_grad1 = tf.gradients(y_label_c1, target_conv_layer1)[0]
     target_conv_layer_grad2 = tf.gradients(y_label_c2, target_conv_layer2)[0]
-    return y_out, mu_y, f_fc1, mu_f_fc1, sigma_y, sigma_f, target_conv_layer1, target_conv_layer_grad1, target_conv_layer2, target_conv_layer_grad2
+    return y_out, mu_y, f_fc1, mu_f_fc1, sigma_y, sigma_f, target_conv_layer1, target_conv_layer_grad1, target_conv_layer2, target_conv_layer_grad2   
+        
+
     
 def plot_images(images, sigma_std, epoch, cls_true, cls_pred=None, smooth=True, noise=0.0):
     assert len(images) == len(cls_true) == 9
@@ -380,44 +341,44 @@ def plot_images(images, sigma_std, epoch, cls_true, cls_pred=None, smooth=True, 
 
 def kl_divergence_conv(patch_size, num_filters, conv_weight_M, conv_weight_sigma ):    
     c_s = tf.log(1. + tf.exp(conv_weight_sigma))
-    kl_loss_conv = - 0.5 * tf.reduce_mean(patch_size*patch_size + patch_size*patch_size* tf.log(c_s) -
-    tf.nn.l2_loss(conv_weight_M) - patch_size*patch_size* c_s)#, axis=-1)
    # kl_loss_conv = - 0.5 * tf.reduce_mean(patch_size*patch_size + patch_size*patch_size* tf.log(c_s) -
-   #tf.reduce_sum(tf.square(conv_weight_M)) - patch_size*patch_size* c_s, axis=-1)  
+   # tf.nn.l2_loss(conv_weight_M) - patch_size*patch_size* c_s)#, axis=-1)
+    kl_loss_conv = - 0.5 * tf.reduce_mean(patch_size*patch_size + patch_size*patch_size* tf.log(c_s) -
+   tf.reduce_sum(tf.abs(conv_weight_M)) - patch_size*patch_size* c_s, axis=-1)  
     return kl_loss_conv
 
 def kl_divergence_fc(new_size, num_filters, fc_weight_mu, fc_weight_sigma ):
     f_s = tf.log(1. + tf.exp(fc_weight_sigma))
-   # kl_loss_fc = - 0.5 * tf.reduce_mean(new_size*new_size*num_filters + new_size*new_size*num_filters* tf.log(f_s)
-   # - tf.reduce_sum(tf.square(fc_weight_mu)) - new_size*new_size* num_filters*f_s, axis=-1)   
     kl_loss_fc = - 0.5 * tf.reduce_mean(new_size*new_size*num_filters + new_size*new_size*num_filters* tf.log(f_s)
-    - tf.nn.l2_loss(fc_weight_mu) - new_size*new_size* num_filters*f_s)#, axis=-1)  
+    - tf.reduce_sum(tf.abs(fc_weight_mu)) - new_size*new_size* num_filters*f_s, axis=-1)   
+   # kl_loss_fc = - 0.5 * tf.reduce_mean(new_size*new_size*num_filters + new_size*new_size*num_filters* tf.log(f_s)
+   #- tf.nn.l2_loss(fc_weight_mu) - new_size*new_size* num_filters*f_s)#, axis=-1)  
     return kl_loss_fc
     
-def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10): 
-    NS = tf.diag(tf.constant(1e-3, shape=[num_labels]))
-    y_pred_sd_inv = tf.matrix_inverse(y_pred_sd + NS)   
-    mu_ = y_pred_mean - y_test
-    mu_sigma = tf.matmul(mu_ ,  y_pred_sd_inv) 
-    ms = 0.5*tf.matmul(mu_sigma , tf.transpose(mu_)) + 0.5*tf.log(tf.matrix_determinant(y_pred_sd + NS ))      
-    ms = tf.reduce_mean(ms)
-    return(ms)
-
-
-#def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10):
+#def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10): 
 #    NS = tf.diag(tf.constant(1e-3, shape=[num_labels]))
-#    I = tf.eye(num_labels)
-#    y_pred_sd_ns = y_pred_sd + NS
-#    y_pred_sd_inv = tf.matrix_solve(y_pred_sd_ns, I)
+#    y_pred_sd_inv = tf.matrix_inverse(y_pred_sd + NS)   
 #    mu_ = y_pred_mean - y_test
 #    mu_sigma = tf.matmul(mu_ ,  y_pred_sd_inv) 
-#    ms = 0.5*tf.matmul(mu_sigma , mu_, transpose_b=True) + 0.5*tf.linalg.slogdet(y_pred_sd_ns)[1]
+#    ms = 0.5*tf.matmul(mu_sigma , tf.transpose(mu_)) + 0.5*tf.log(tf.matrix_determinant(y_pred_sd + NS ))      
 #    ms = tf.reduce_mean(ms)
 #    return(ms)
 
+
+def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10):
+    NS = tf.diag(tf.constant(1e-3, shape=[num_labels]))
+    I = tf.eye(num_labels)
+    y_pred_sd_ns = y_pred_sd + NS
+    y_pred_sd_inv = tf.matrix_solve(y_pred_sd_ns, I)
+    mu_ = y_pred_mean - y_test
+    mu_sigma = tf.matmul(mu_ ,  y_pred_sd_inv) 
+    ms = 0.5*tf.matmul(mu_sigma , mu_, transpose_b=True) + 0.5*tf.linalg.slogdet(y_pred_sd_ns)[1]
+    ms = tf.reduce_mean(ms)
+    return(ms)
+
 def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32, 64,64,128,128],num_labels=10,
         batch_size=100, noise_limit=0.01, noise_l2_weight=0.01, adversary_target_cls=3, init_sigma_std=-2.3,
-        weight_std=0.05, epochs=10, Adversarial_noise=False, Random_noise=False, gaussain_noise_var=0.01, Training=True, continue_train=True):     
+        weight_std=0.05, epochs=100, Adversarial_noise=False, Random_noise=False, gaussain_noise_var=0.01, Training=True, continue_train=False):     
     init_std = 0.1
     x = tf.placeholder(tf.float32, shape = (1, image_size,image_size,num_channel), name='x')
     y = tf.placeholder(tf.float32, shape = (1,num_labels), name='y_true')        
@@ -469,14 +430,23 @@ def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32
                        'm8': tf.Variable(tf.constant(0.0, shape=[num_labels]))        
                    }   
         sigmas = {
-                      's1': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[0]])),       
-                      's2': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[1]])),      
-                      's3': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[2]])),    
-                      's4': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[3]])),    
-                      's5': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[4]])),    
-                      's6': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[5]])),        
-                      's7': tf.Variable(tf.constant(init_sigma_std, shape=[num_labels])),
-                      's8': tf.Variable(tf.constant(0.0, shape=[num_labels])) 
+                 #     's1': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[0]])),       
+                  #    's2': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[1]])),      
+                  #    's3': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[2]])),    
+                  #    's4': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[3]])),    
+                   #   's5': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[4]])),    
+                  #    's6': tf.Variable(tf.constant(init_sigma_std, shape=[num_filter[5]])),        
+                   #   's7': tf.Variable(tf.constant(init_sigma_std, shape=[num_labels])),
+                  #    's8': tf.Variable(tf.constant(0.0, shape=[num_labels])) 
+            
+                      's1': tf.Variable(tf.truncated_normal([num_filter[0]],stddev = init_sigma_std)),                   
+                      's2': tf.Variable(tf.truncated_normal([num_filter[1]],stddev = init_sigma_std)),      
+                      's3': tf.Variable(tf.truncated_normal([num_filter[2]],stddev = init_sigma_std)),    
+                      's4': tf.Variable(tf.truncated_normal([num_filter[3]],stddev = init_sigma_std)),    
+                      's5': tf.Variable(tf.truncated_normal([num_filter[4]],stddev = init_sigma_std)),    
+                      's6': tf.Variable(tf.truncated_normal([num_filter[5]],stddev = init_sigma_std)),        
+                      's7': tf.Variable(tf.truncated_normal([num_labels],stddev = init_sigma_std)),            
+                      's8': tf.Variable(tf.truncated_normal([num_labels],stddev = init_sigma_std))            
                   }
     if Adversarial_noise:
         ADVERSARY_VARIABLES = 'adversary_variables'
@@ -557,7 +527,7 @@ def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32
             acc_valid1 = 0                          
             train_batches = 0                     
             val_batches = 0  
-            for tr_minibatch in get_batches(X_train, y_train, batch_size, crop=False, distort=True):            
+            for tr_minibatch in get_batches(X_train, y_train, batch_size, crop=False, distort=False):            
                 update_progress(train_batches/int(N/batch_size))    
                 inputs, targets = tr_minibatch                 
                 acc2 = 0
@@ -576,7 +546,7 @@ def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32
                 acc1 += acc2             
                 train_batches += 1                            
             train_acc[k] = acc1 / (train_batches*batch_size)            
-            for va_minibatch in get_batches(X_val, y_val, batch_size, crop=False, distort=True):
+            for va_minibatch in get_batches(X_val, y_val, batch_size, crop=False, distort=False):
                 update_progress(val_batches/int(5000/batch_size)) 
                 inputs, targets = va_minibatch                    
                 acc_valid2 = 0
