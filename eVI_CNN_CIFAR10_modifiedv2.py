@@ -356,7 +356,7 @@ def kl_divergence_fc(new_size, num_filters, fc_weight_mu, fc_weight_sigma ):
     return kl_loss_fc
     
 def nll_gaussian(y_pred_mean,y_pred_sd,y_test, num_labels=10): 
-    NS = tf.diag(tf.constant(1e-2, shape=[num_labels]))
+    NS = tf.diag(tf.constant(1e-3, shape=[num_labels]))
     y_pred_sd_inv = tf.matrix_inverse(y_pred_sd + NS)   
     mu_ = y_pred_mean - y_test
     mu_sigma = tf.matmul(mu_ ,  y_pred_sd_inv) 
@@ -490,7 +490,7 @@ def main_function(image_size=32, num_channel=3, patch_size=3, num_filter=[32, 32
     #optm = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss, global_step=global_step)     
     #optm = tf.train.GradientDescentOptimizer(learning_rate = 0.001).minimize(loss) 
 
-    optm = tf.train.AdamOptimizer(learning_rate = 0.0001).minimize(loss) 
+    optm = tf.train.AdamOptimizer(learning_rate = 0.00001).minimize(loss) 
     #optm = tf.train.RMSPropOptimizer(learning_rate=0.0001, decay=1e-4).minimize(loss)#, global_step=global_step)     
     print('Compute Accuracy ....')
     corr = tf.equal(tf.argmax(prediction, 1),tf.argmax(y,1))
